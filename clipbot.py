@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """ClipBot v1: find trending Twitch + Kick clips, render vertical shorts, post to Discord."""
 import json
-import shutil
 import os
+import shutil
 import re
 import subprocess
 import sys
@@ -251,8 +251,19 @@ def post_discord(webhook, clip, cfg, video):
 
 # ---------------------------------------------------------------- main
 
+def find_ffmpeg():
+    """Put a winget-installed ffmpeg on PATH if the shell hasn't picked it up yet."""
+    if shutil.which("ffmpeg") or os.name != "nt":
+        return
+    pkgs = Path(os.getenv("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Packages"
+    for exe in pkgs.glob("*FFmpeg*/*/bin/ffmpeg.exe"):
+        os.environ["PATH"] = f"{exe.parent}{os.pathsep}{os.environ['PATH']}"
+        return
+
+
 def main():
     cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    find_ffmpeg()
     missing = [t for t in ("ffmpeg", "ffprobe") if not shutil.which(t)]
     if missing:
         sys.exit(f"[clipbot] not found on PATH: {', '.join(missing)} (install ffmpeg)")
