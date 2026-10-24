@@ -1,0 +1,37 @@
+# ClipBot configuration
+
+twitch:
+  streamers: [xqc, kaicenat, jynxzi]      # Twitch logins
+  categories: ["Just Chatting"]           # category names
+  language: en
+
+kick:
+  enabled: true
+  streamers: [xqc, adinross]              # Kick slugs
+  sitewide_trending: true
+
+filter:
+  lookback_hours: 24
+  min_views: 500
+  min_duration: 6
+  max_duration: 90
+  max_per_streamer: 2
+  max_per_run: 5
+
+edit:
+  width: 1080
+  height: 1920
+  fps: 30
+  font: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+  title_font_size: 64
+  title_max_chars: 70
+  title_line_chars: 24
+  title_max_lines: 3
+  credit_font_size: 44
+  blur: 30
+  darken: 0.45          # brightness multiplier for background
+
+output:
+  dir: out
+  discord_max_mb: 10
+  hashtags: ["#twitch", "#kick", "#streamer", "#clips", "#fyp"]
