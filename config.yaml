@@ -22,7 +22,7 @@ edit:
   width: 1080
   height: 1920
   fps: 30
-  font: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+  font: fonts/DejaVuSans-Bold.ttf   # relative to the repo
   title_font_size: 64
   title_max_chars: 70
   title_line_chars: 24

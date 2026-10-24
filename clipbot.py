@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ClipBot v1: find trending Twitch + Kick clips, render vertical shorts, post to Discord."""
 import json
+import shutil
 import os
 import re
 import subprocess
@@ -16,6 +17,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 STATE = ROOT / "state" / "seen.json"
 HTTP_TIMEOUT = 20
+YTDLP = [sys.executable, "-m", "yt_dlp"]  # works even when pip's Scripts dir is not on PATH
 
 
 def log(msg):
@@ -39,7 +41,7 @@ def load_seen():
 
 def save_seen(seen):
     STATE.parent.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(sorted(seen), indent=1))
+    STATE.write_text(json.dumps(sorted(seen), indent=1), encoding="utf-8")
 
 
 # ---------------------------------------------------------------- Twitch
@@ -156,7 +158,7 @@ def select(clips, cfg, seen, now):
 
 def download(clip, workdir):
     dest = workdir / f"{clip['id'].replace(':', '_')}.mp4"
-    cmd = ["yt-dlp", "-q", "--no-warnings", "-f", "best[ext=mp4]/best",
+    cmd = YTDLP + ["-q", "--no-warnings", "-f", "best[ext=mp4]/best",
            "--merge-output-format", "mp4", "-o", str(dest), clip["url"]]
     if subprocess.run(cmd).returncode == 0 and dest.exists():
         return dest
@@ -210,7 +212,7 @@ def render(src, clip, cfg, dest):
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-filter_complex", fg,
            "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "medium", "-crf", "20",
            "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(dest)]
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=ROOT)
     return dest
 
 
@@ -250,7 +252,10 @@ def post_discord(webhook, clip, cfg, video):
 # ---------------------------------------------------------------- main
 
 def main():
-    cfg = yaml.safe_load((ROOT / "config.yaml").read_text())
+    cfg = yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    missing = [t for t in ("ffmpeg", "ffprobe") if not shutil.which(t)]
+    if missing:
+        sys.exit(f"[clipbot] not found on PATH: {', '.join(missing)} (install ffmpeg)")
     now = datetime.now(timezone.utc)
     since = now - timedelta(hours=cfg["filter"]["lookback_hours"])
     seen = load_seen()
@@ -285,7 +290,7 @@ def main():
             continue
         name = clip["id"].replace(":", "_")
         final = render(src, clip, cfg, out / f"{name}.mp4")
-        (out / f"{name}.txt").write_text(caption(clip, cfg) + f"\n\nSource: {clip['url']}\n")
+        (out / f"{name}.txt").write_text(caption(clip, cfg) + f"\n\nSource: {clip['url']}\n", encoding="utf-8")
         seen.add(clip["id"])
         if webhook:
             send = final
